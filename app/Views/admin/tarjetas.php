@@ -170,6 +170,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/tarjetas/crear" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">UID de la Tarjeta *</label>
@@ -220,6 +221,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/tarjetas/asignar" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="uid_tarjeta" id="uid_asignar">
                 <div class="modal-body">
                     <div class="alert alert-info">
@@ -253,6 +255,26 @@
 </div>
 
 <script>
+    const CSRF_TOKEN = <?= json_encode($csrf_token ?? '') ?>;
+
+    // Envía una acción que modifica estado (bloquear/activar/desasignar/
+    // eliminar) como POST con el token CSRF, en vez de navegar a una URL
+    // GET. Las rutas de este panel para esas acciones ya sólo aceptan POST.
+    function enviarAccionSegura(url) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = CSRF_TOKEN;
+        form.appendChild(csrfInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function mostrarModalNuevaTarjeta() {
         new bootstrap.Modal(document.getElementById('modalNuevaTarjeta')).show();
     }
@@ -271,25 +293,25 @@
 
     function desasignarTarjeta(uid) {
         if (confirm('¿Estás seguro de que quieres desasignar esta tarjeta?')) {
-            window.location.href = `/admin/tarjetas/desasignar/${uid}`;
+            enviarAccionSegura(`/admin/tarjetas/desasignar/${uid}`);
         }
     }
 
     function bloquearTarjeta(uid) {
         if (confirm('¿Estás seguro de que quieres bloquear esta tarjeta?')) {
-            window.location.href = `/admin/tarjetas/bloquear/${uid}`;
+            enviarAccionSegura(`/admin/tarjetas/bloquear/${uid}`);
         }
     }
 
     function activarTarjeta(uid) {
         if (confirm('¿Estás seguro de que quieres activar esta tarjeta?')) {
-            window.location.href = `/admin/tarjetas/activar/${uid}`;
+            enviarAccionSegura(`/admin/tarjetas/activar/${uid}`);
         }
     }
 
     function eliminarTarjeta(uid) {
         if (confirm('¿Estás seguro de que quieres eliminar esta tarjeta? Esta acción no se puede deshacer.')) {
-            window.location.href = `/admin/tarjetas/eliminar/${uid}`;
+            enviarAccionSegura(`/admin/tarjetas/eliminar/${uid}`);
         }
     }
 

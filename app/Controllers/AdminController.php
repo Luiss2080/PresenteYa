@@ -8,6 +8,7 @@
 namespace App\Controllers;
 
 use App\Models\Database;
+use App\Utils\Auth;
 use Exception;
 
 class AdminController
@@ -130,6 +131,7 @@ class AdminController
     public function crearUsuario()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verificarCSRF();
             try {
                 $datos = $this->validarDatosUsuario($_POST);
 
@@ -207,6 +209,7 @@ class AdminController
     public function crearDispositivo()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verificarCSRF();
             try {
                 $datos = [
                     'nombre' => trim($_POST['nombre']),
@@ -318,6 +321,7 @@ class AdminController
     public function asignarTarjeta()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verificarCSRF();
             try {
                 $datos = [
                     'uid_tarjeta' => strtoupper(trim($_POST['uid_tarjeta'])),
@@ -387,6 +391,7 @@ class AdminController
     public function configuracion()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verificarCSRF();
             try {
                 $configuraciones = $_POST['config'] ?? [];
 
@@ -630,6 +635,12 @@ class AdminController
      */
     private function renderViewWithLayout($viewPath, $data = [])
     {
+        // Todas las vistas administrativas reciben un token CSRF listo para
+        // usar en sus formularios (ver verificarCSRF()).
+        if (!isset($data['csrf_token'])) {
+            $data['csrf_token'] = Auth::generarTokenCSRF();
+        }
+
         // Extraer variables para que estén disponibles en las vistas
         extract($data);
 
@@ -640,6 +651,32 @@ class AdminController
 
         // Incluir el layout principal
         include __DIR__ . '/../Views/layouts/main.php';
+    }
+
+    /**
+     * Verificar el token CSRF de una petición que modifica estado.
+     *
+     * Ninguno de los formularios/acciones POST de este panel (crear
+     * usuario, crear/asignar tarjeta, crear dispositivo, bloquear/activar/
+     * eliminar tarjeta o dispositivo, configuración) validaba un token
+     * CSRF, por lo que cualquier sitio externo podía forjar una petición
+     * que un administrador autenticado ejecutara sin darse cuenta
+     * (ej. un <form> oculto que se auto-envía a
+     * /admin/tarjetas/eliminar/{uid}). Se corta la petición con 403 si el
+     * token no coincide con el guardado en sesión.
+     */
+    private function verificarCSRF()
+    {
+        $token = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
+        if (!Auth::verificarTokenCSRF($token)) {
+            http_response_code(403);
+            $_SESSION['error'] = 'Token de seguridad inválido o expirado. Vuelve a intentarlo.';
+
+            $referer = $_SERVER['HTTP_REFERER'] ?? '/ControlDeAsistencia/admin';
+            header('Location: ' . $referer);
+            exit;
+        }
     }
 
     /**
@@ -690,6 +727,7 @@ class AdminController
      */
     public function desasignarTarjeta($uid)
     {
+        $this->verificarCSRF();
         try {
             $resultado = $this->db->update(
                 'tarjetas_rfid',
@@ -716,6 +754,7 @@ class AdminController
      */
     public function bloquearTarjeta($uid)
     {
+        $this->verificarCSRF();
         try {
             $resultado = $this->db->update(
                 'tarjetas_rfid',
@@ -742,6 +781,7 @@ class AdminController
      */
     public function activarTarjeta($uid)
     {
+        $this->verificarCSRF();
         try {
             $resultado = $this->db->update(
                 'tarjetas_rfid',
@@ -768,6 +808,7 @@ class AdminController
      */
     public function eliminarTarjeta($uid)
     {
+        $this->verificarCSRF();
         try {
             // Verificar si la tarjeta tiene registros de asistencia
             $tiene_registros = $this->db->fetch(
@@ -802,6 +843,7 @@ class AdminController
      */
     public function desactivarDispositivo($id)
     {
+        $this->verificarCSRF();
         try {
             $resultado = $this->db->update(
                 'dispositivos',
@@ -828,6 +870,7 @@ class AdminController
      */
     public function activarDispositivo($id)
     {
+        $this->verificarCSRF();
         try {
             $resultado = $this->db->update(
                 'dispositivos',
@@ -854,6 +897,7 @@ class AdminController
      */
     public function eliminarDispositivo($id)
     {
+        $this->verificarCSRF();
         try {
             // Verificar si el dispositivo tiene registros de asistencia
             $tiene_registros = $this->db->fetch(
