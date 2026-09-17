@@ -7,6 +7,7 @@
 namespace App\Controllers;
 
 use App\Models\Database;
+use App\Utils\Auth;
 
 class AuthController {
     private $db;
@@ -30,8 +31,9 @@ class AuthController {
 
         // Variables para la vista
         $titulo = 'Iniciar Sesión - Sistema de Asistencia';
-        $csrf_token = bin2hex(random_bytes(32));
-        $_SESSION['csrf_token'] = $csrf_token;
+        // Usar el mismo generador/almacén que Auth::verificarTokenCSRF()
+        // para que procesarLogin() pueda validar este mismo token.
+        $csrf_token = Auth::generarTokenCSRF();
 
         // Incluir vista de login
         include __DIR__ . '/../Views/auth/login.php';
@@ -41,6 +43,17 @@ class AuthController {
      * Procesar login
      */
     public function procesarLogin() {
+        // El formulario de login ya incluía un campo csrf_token, pero nunca
+        // se comprobaba aquí: cualquier sitio externo podía enviar un POST
+        // a /login en nombre de un visitante (CSRF de login / "login
+        // fixation"). Se valida contra el token guardado en sesión antes de
+        // procesar nada.
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!Auth::verificarTokenCSRF($csrfToken)) {
+            header('Location: /ControlDeAsistencia/?error=' . urlencode('Sesión de formulario expirada, intenta de nuevo'));
+            exit;
+        }
+
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
