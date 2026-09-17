@@ -1,0 +1,29 @@
+/*
+ * Plantilla de configuración del ESP32.
+ *
+ * Copia este archivo a "config.h" (mismo directorio) y rellena tus propios
+ * valores. "config.h" está en .gitignore a propósito: antes, el SSID/
+ * password de WiFi y el token del dispositivo estaban escritos directamente
+ * en lector_asistencia.ino, así que subir el firmware a un repositorio
+ * público publicaba la contraseña real de la red WiFi de la oficina. Ahora
+ * viven en este archivo, que nunca se sube al repo.
+ */
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ===== CONFIGURACIÓN DE RED =====
+#define WIFI_SSID     "TU_RED_WIFI"
+#define WIFI_PASSWORD "TU_PASSWORD_WIFI"
+
+// ===== CONFIGURACIÓN DEL SERVIDOR =====
+// Debe apuntar a la carpeta "api/" del backend (ver api/index.php).
+#define SERVER_URL "http://192.168.1.100/ControlDeAsistencia/api"
+
+// Token del dispositivo generado por el panel de administración al crear
+// el lector (AdminController::crearDispositivo -> tabla `dispositivos`,
+// columna `token_dispositivo`). Cada dispositivo debe tener el suyo: no
+// reutilices el mismo token en varios lectores.
+#define DEVICE_TOKEN "reemplaza_con_el_token_del_dispositivo"
+
+#endif

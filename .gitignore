@@ -26,6 +26,10 @@ node_modules/
 config/local.php
 config/database.local.php
 
+# Credenciales del firmware ESP32 (WiFi + token del dispositivo).
+# Ver esp32/config.h.example para la plantilla que sí se versiona.
+esp32/config.h
+
 # IDEs y editores
 .vscode/
 .idea/
