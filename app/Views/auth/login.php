@@ -150,12 +150,22 @@
             <a href="/recuperar-password">¿Olvidaste tu contraseña?</a>
         </div>
         
+        <?php if (($_ENV['APP_DEBUG'] ?? 'false') === 'true'): ?>
+        <!--
+            Las credenciales de los usuarios sembrados por defecto
+            (ver database/backup_completo.sql) sólo se muestran aquí
+            cuando APP_DEBUG=true. Mostrarlas siempre en la página de
+            login pública es, en la práctica, publicar un usuario y
+            contraseña de administrador que funcionan en cualquier
+            instalación que no haya cambiado los datos de ejemplo.
+        -->
         <div class="info-section">
-            <strong>Usuarios de prueba:</strong><br>
+            <strong>Usuarios de prueba (sólo entorno de desarrollo):</strong><br>
             Admin: admin@empresa.com / admin123<br>
             RRHH: rrhh@empresa.com / rrhh123<br>
             Empleado: juan@empresa.com / emp123
         </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>
