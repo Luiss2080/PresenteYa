@@ -6,9 +6,19 @@
 class SystemTests {
     private $db;
     private $results = [];
-    
+
     public function __construct() {
         require_once __DIR__ . '/../config/bootstrap.php';
+
+        // Este script no pide autenticación y, sin este guard, cualquier
+        // visitante que lo abriera directamente en el navegador podía ver
+        // cuántos usuarios existen y confirmar si la conexión a la base de
+        // datos está activa. Sólo se permite con APP_DEBUG=true.
+        if (($_ENV['APP_DEBUG'] ?? 'false') !== 'true') {
+            http_response_code(404);
+            exit('Not Found');
+        }
+
         $this->db = \App\Models\Database::getInstance();
     }
     
