@@ -44,15 +44,20 @@ class Router
         $this->routes['POST']['/admin/crear-tarjeta'] = [AdminController::class, 'crearTarjeta'];
         $this->routes['POST']['/admin/tarjetas/crear'] = [AdminController::class, 'crearTarjeta'];
         $this->routes['POST']['/admin/tarjetas/asignar'] = [AdminController::class, 'asignarTarjeta'];
-        $this->routes['GET']['/admin/tarjetas/desasignar/{uid}'] = [AdminController::class, 'desasignarTarjeta'];
-        $this->routes['GET']['/admin/tarjetas/bloquear/{uid}'] = [AdminController::class, 'bloquearTarjeta'];
-        $this->routes['GET']['/admin/tarjetas/activar/{uid}'] = [AdminController::class, 'activarTarjeta'];
-        $this->routes['GET']['/admin/tarjetas/eliminar/{uid}'] = [AdminController::class, 'eliminarTarjeta'];
+        // Desasignar/bloquear/activar/eliminar cambian estado en la base de
+        // datos, así que deben ser POST (con token CSRF) en vez de GET: un
+        // enlace o <img> de un sitio externo puede disparar un GET del
+        // navegador de la víctima sin que ella lo note (CSRF), pero no puede
+        // forjar un POST con el token de sesión del admin.
+        $this->routes['POST']['/admin/tarjetas/desasignar/{uid}'] = [AdminController::class, 'desasignarTarjeta'];
+        $this->routes['POST']['/admin/tarjetas/bloquear/{uid}'] = [AdminController::class, 'bloquearTarjeta'];
+        $this->routes['POST']['/admin/tarjetas/activar/{uid}'] = [AdminController::class, 'activarTarjeta'];
+        $this->routes['POST']['/admin/tarjetas/eliminar/{uid}'] = [AdminController::class, 'eliminarTarjeta'];
         $this->routes['GET']['/admin/dispositivos/detalles/{id}'] = [AdminController::class, 'detallesDispositivo'];
         $this->routes['POST']['/admin/dispositivos/ping/{id}'] = [AdminController::class, 'pingDispositivo'];
-        $this->routes['GET']['/admin/dispositivos/desactivar/{id}'] = [AdminController::class, 'desactivarDispositivo'];
-        $this->routes['GET']['/admin/dispositivos/activar/{id}'] = [AdminController::class, 'activarDispositivo'];
-        $this->routes['GET']['/admin/dispositivos/eliminar/{id}'] = [AdminController::class, 'eliminarDispositivo'];
+        $this->routes['POST']['/admin/dispositivos/desactivar/{id}'] = [AdminController::class, 'desactivarDispositivo'];
+        $this->routes['POST']['/admin/dispositivos/activar/{id}'] = [AdminController::class, 'activarDispositivo'];
+        $this->routes['POST']['/admin/dispositivos/eliminar/{id}'] = [AdminController::class, 'eliminarDispositivo'];
         $this->routes['GET']['/admin/eliminar-usuario/{id}'] = [AdminController::class, 'eliminarUsuario'];
         $this->routes['GET']['/admin/eliminar-dispositivo/{token}'] = [AdminController::class, 'eliminarDispositivo'];
         $this->routes['GET']['/admin/eliminar-tarjeta/{uid}'] = [AdminController::class, 'eliminarTarjeta'];

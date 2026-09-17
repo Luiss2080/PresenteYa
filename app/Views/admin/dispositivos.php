@@ -164,6 +164,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/crear-dispositivo" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -238,6 +239,26 @@
 </div>
 
 <script>
+    const CSRF_TOKEN = <?= json_encode($csrf_token ?? '') ?>;
+
+    // Envía una acción que modifica estado (activar/desactivar/eliminar)
+    // como POST con el token CSRF, en vez de navegar a una URL GET. Las
+    // rutas de este panel para esas acciones ya sólo aceptan POST.
+    function enviarAccionSegura(url) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = CSRF_TOKEN;
+        form.appendChild(csrfInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function mostrarModalNuevoDispositivo() {
         new bootstrap.Modal(document.getElementById('modalNuevoDispositivo')).show();
     }
@@ -301,17 +322,17 @@
 
     function desactivarDispositivo(dispositivoId) {
         if (confirm('¿Estás seguro de que quieres desactivar este dispositivo?')) {
-            window.location.href = `/admin/dispositivos/desactivar/${dispositivoId}`;
+            enviarAccionSegura(`/admin/dispositivos/desactivar/${dispositivoId}`);
         }
     }
 
     function activarDispositivo(dispositivoId) {
-        window.location.href = `/admin/dispositivos/activar/${dispositivoId}`;
+        enviarAccionSegura(`/admin/dispositivos/activar/${dispositivoId}`);
     }
 
     function eliminarDispositivo(dispositivoId) {
         if (confirm('¿Estás seguro de que quieres eliminar este dispositivo? Esta acción no se puede deshacer.')) {
-            window.location.href = `/admin/dispositivos/eliminar/${dispositivoId}`;
+            enviarAccionSegura(`/admin/dispositivos/eliminar/${dispositivoId}`);
         }
     }
 
