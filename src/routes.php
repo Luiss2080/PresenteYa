@@ -145,8 +145,13 @@ class Router
     private function ejecutarControlador($controlador, $parametros)
     {
         if ($controlador === 'api') {
-            // Redirigir a la API
-            require_once __DIR__ . '/api/index.php';
+            // __DIR__ aquí es src/, así que 'api/index.php' resolvía a
+            // src/api/index.php (que no existe) en vez del api/index.php
+            // real que vive en la raíz del proyecto, junto a este archivo
+            // (src/routes.php). Esto hacía fallar con un fatal error
+            // "failed to open stream" cualquier petición del ESP32 que
+            // llegara a pasar por el Router.
+            require_once dirname(__DIR__) . '/api/index.php';
             return;
         }
 
