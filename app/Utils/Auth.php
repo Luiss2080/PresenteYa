@@ -84,6 +84,25 @@ class Auth {
     }
 
     /**
+     * Determinar si la petición actual es una petición AJAX/JSON.
+     *
+     * Usado por AuthMiddleware para decidir si debe responder con un
+     * redirect (navegación normal) o con un JSON + código HTTP (fetch/AJAX).
+     * Antes no existía este método aunque AuthMiddleware ya lo invocaba,
+     * lo que provocaba un "Call to undefined method" fatal en cuanto se
+     * usara el middleware.
+     */
+    public static function esAjax() {
+        $requestedWith = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+        if (strtolower($requestedWith) === 'xmlhttprequest') {
+            return true;
+        }
+
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        return stripos($accept, 'application/json') !== false;
+    }
+
+    /**
      * Requerir autenticación
      */
     public static function requerir() {
@@ -94,11 +113,24 @@ class Auth {
     }
 
     /**
-     * Requerir rol específico
+     * Requerir rol específico.
+     *
+     * Los roles se almacenan en la base de datos y en sesión con los
+     * valores cortos 'admin', 'rrhh' y 'empleado' (ver
+     * AuthController::redirigirSegunRol y la columna `usuarios.rol`).
+     * Este mapa normaliza alias equivalentes (p. ej. 'administrador')
+     * para que quien llame a requerirRol() con cualquiera de las dos
+     * formas obtenga el resultado correcto.
      */
+    private static $aliasRoles = [
+        'administrador' => 'admin',
+    ];
+
     public static function requerirRol($rol) {
         self::requerir();
-        
+
+        $rol = self::$aliasRoles[$rol] ?? $rol;
+
         if (!self::tieneRol($rol)) {
             header('Location: /ControlDeAsistencia/?error=' . urlencode('Acceso denegado'));
             exit;
