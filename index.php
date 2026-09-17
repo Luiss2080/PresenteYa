@@ -16,78 +16,34 @@ require_once __DIR__ . '/config/bootstrap.php';
 // Incluir el archivo de rutas
 require_once __DIR__ . '/src/routes.php';
 
-// Obtener la ruta actual
-$requestUri = $_SERVER['REQUEST_URI'];
-$requestMethod = $_SERVER['REQUEST_METHOD'];
-
-// Normalizar la URI
-$uri = parse_url($requestUri, PHP_URL_PATH);
-$uri = str_replace('/ControlDeAsistencia', '', $uri);
-$uri = rtrim($uri, '/');
-if (empty($uri)) $uri = '/';
-
-// Enrutamiento simple y directo
+// Este archivo tenía su propio switch/case duplicado que sólo conocía
+// '/', '/login', '/admin', '/rrhh', '/empleado' y '/logout': cualquier
+// otra URL (/admin/dispositivos, /admin/tarjetas, /admin/usuarios,
+// /admin/reportes, /admin/configuracion, /rrhh/reportes, /api/*, etc.)
+// caía siempre en el 404, sin importar que Router (definido arriba en
+// src/routes.php) sí supiera manejarlas. En la práctica, todo el panel
+// de gestión de dispositivos/tarjetas/usuarios, los reportes de RRHH y
+// la API para el ESP32 eran inalcanzables a través de este punto de
+// entrada. Se delega todo el enrutamiento a Router::procesarRuta(),
+// que ya contiene (y ahora también gestiona correctamente) todas las
+// rutas de la aplicación.
 try {
-    if ($requestMethod === 'GET') {
-        switch ($uri) {
-            case '/':
-            case '/login':
-                $controller = new \App\Controllers\AuthController();
-                $controller->mostrarLogin();
-                break;
-                
-            case '/admin':
-            case '/admin/dashboard':
-                \App\Controllers\AuthController::requerirRol('admin');
-                $controller = new \App\Controllers\AdminController();
-                $controller->dashboard();
-                break;
-                
-            case '/rrhh':
-            case '/rrhh/dashboard':
-                \App\Controllers\AuthController::requerirRol('rrhh');
-                $controller = new \App\Controllers\RRHHController();
-                $controller->dashboard();
-                break;
-                
-            case '/empleado':
-            case '/empleado/dashboard':
-                \App\Controllers\AuthController::requerirRol('empleado');
-                $controller = new \App\Controllers\EmpleadoController();
-                $controller->dashboard();
-                break;
-                
-            case '/logout':
-                $controller = new \App\Controllers\AuthController();
-                $controller->logout();
-                break;
-                
-            default:
-                http_response_code(404);
-                echo '<h1>404 - Página no encontrada</h1>';
-                echo '<p>La ruta "' . htmlspecialchars($uri) . '" no existe.</p>';
-                echo '<a href="/ControlDeAsistencia/">Volver al inicio</a>';
-        }
-    } elseif ($requestMethod === 'POST') {
-        switch ($uri) {
-            case '/login':
-                $controller = new \App\Controllers\AuthController();
-                $controller->procesarLogin();
-                break;
-                
-            default:
-                http_response_code(405);
-                echo '<h1>405 - Método no permitido</h1>';
-        }
-    }
-    
+    $router = new Router();
+    $router->procesarRuta();
 } catch (Exception $e) {
     // Log del error
     error_log("Error en router: " . $e->getMessage());
-    
-    // Mostrar error en modo debug
-    echo "<h1>Error en el sistema</h1>";
-    echo "<p>Error: " . htmlspecialchars($e->getMessage()) . "</p>";
-    echo "<p>Archivo: " . $e->getFile() . ":" . $e->getLine() . "</p>";
-    echo "<pre>" . $e->getTraceAsString() . "</pre>";
+
+    http_response_code(500);
+
+    // Mostrar detalle sólo en modo debug; en producción no se filtra el
+    // mensaje de la excepción ni la traza al visitante.
+    if (($_ENV['APP_DEBUG'] ?? 'false') === 'true') {
+        echo "<h1>Error en el sistema</h1>";
+        echo "<p>Error: " . htmlspecialchars($e->getMessage()) . "</p>";
+        echo "<p>Archivo: " . htmlspecialchars($e->getFile()) . ":" . (int) $e->getLine() . "</p>";
+        echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    } else {
+        echo '<h1>500 - Error interno del servidor</h1>';
+    }
 }
