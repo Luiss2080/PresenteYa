@@ -7,6 +7,7 @@
 namespace App\Models;
 
 use App\Models\Database;
+use App\Utils\AsistenciaCalculator;
 
 class RegistroAsistencia {
     private $db;
@@ -120,14 +121,10 @@ class RegistroAsistencia {
                 LIMIT 1";
         
         $ultimaMarcacion = $this->db->fetch($sql, [$usuarioId, $fecha]);
-        
-        // Si no hay marcación previa en el día, es entrada
-        if (!$ultimaMarcacion) {
-            return 'entrada';
-        }
-        
-        // Alternar entre entrada y salida
-        return $ultimaMarcacion['tipo'] === 'entrada' ? 'salida' : 'entrada';
+
+        return AsistenciaCalculator::determinarTipoMarcacion(
+            $ultimaMarcacion ? $ultimaMarcacion['tipo'] : null
+        );
     }
 
     /**
@@ -146,23 +143,20 @@ class RegistroAsistencia {
         }
         
         $hora = date('H:i:s', strtotime($fechaHora));
-        $diaSemana = date('N', strtotime($fechaHora)); // 1=lunes, 7=domingo
-        
+        $diaSemana = (int) date('N', strtotime($fechaHora)); // 1=lunes, 7=domingo
+
         // Verificar si es día laboral
         $diasLaborales = json_decode($horario['dias_laborales'], true);
-        if (!in_array($diaSemana, $diasLaborales)) {
+        if (!AsistenciaCalculator::esDiaLaboral($diaSemana, $diasLaborales)) {
             return false; // No es día laboral
         }
-        
-        // Verificar tolerancia de entrada
-        $horaEntrada = $horario['hora_entrada'];
-        $horaSalida = $horario['hora_salida'];
-        $tolerancia = $horario['tolerancia_minutos'] ?? 15;
-        
-        $horaEntradaConTolerancia = date('H:i:s', strtotime($horaEntrada . " - $tolerancia minutes"));
-        $horaSalidaConTolerancia = date('H:i:s', strtotime($horaSalida . " + $tolerancia minutes"));
-        
-        return $hora >= $horaEntradaConTolerancia && $hora <= $horaSalidaConTolerancia;
+
+        return AsistenciaCalculator::estaEnHorarioLaboral(
+            $hora,
+            $horario['hora_entrada'],
+            $horario['hora_salida'],
+            $horario['tolerancia_minutos'] ?? 15
+        );
     }
 
     /**
@@ -248,10 +242,10 @@ class RegistroAsistencia {
         
         // Calcular horas trabajadas
         if ($resumen['primera_entrada'] && $resumen['ultima_salida']) {
-            $entrada = new \DateTime($resumen['primera_entrada']);
-            $salida = new \DateTime($resumen['ultima_salida']);
-            $diferencia = $salida->diff($entrada);
-            $resumen['horas_trabajadas'] = $diferencia->h + ($diferencia->i / 60);
+            $resumen['horas_trabajadas'] = AsistenciaCalculator::calcularHorasTrabajadas(
+                $resumen['primera_entrada'],
+                $resumen['ultima_salida']
+            );
             $resumen['estado'] = 'presente';
         } elseif ($resumen['primera_entrada']) {
             $resumen['estado'] = 'en_oficina';
