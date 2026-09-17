@@ -3,7 +3,19 @@
 /**
  * Script de Validación Completa del Sistema de Control de Asistencia
  * Verifica que todos los componentes estén funcionando correctamente
+ *
+ * Uso: php scripts/validar_sistema.php  (sólo por línea de comandos)
  */
+
+// Este script ejecuta shell_exec('php -l ...') y muestra si la conexión a
+// la base de datos funciona junto con el conteo de filas de cada tabla. Si
+// se sube a un servidor sin restringir el acceso web a /scripts/, cualquier
+// visitante podría ejecutarlo desde el navegador. No requiere nada de la
+// petición HTTP, así que simplemente se restringe a CLI.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not Found');
+}
 
 // Configuración
 error_reporting(E_ALL);

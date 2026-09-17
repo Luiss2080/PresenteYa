@@ -4,6 +4,19 @@
  * Para diagnosticar problemas de configuración
  */
 
+// Cargar .env / APP_DEBUG antes de decidir si esta página puede ejecutarse.
+require_once __DIR__ . '/config/bootstrap.php';
+
+// Este script no requiere autenticación y, sin esta comprobación, cualquier
+// visitante podía abrirlo directamente y ver la lista de correos/roles de
+// usuarios activos además de si la conexión a la base de datos funciona
+// (información útil para un atacante). Sólo se permite con APP_DEBUG=true,
+// igual que el resto del manejo de errores/depuración del sistema.
+if (($_ENV['APP_DEBUG'] ?? 'false') !== 'true') {
+    http_response_code(404);
+    exit('Not Found');
+}
+
 // Configuración de errores
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
