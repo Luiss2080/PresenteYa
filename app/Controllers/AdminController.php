@@ -904,33 +904,44 @@ class AdminController
                 return $this->respuestaJSON(['error' => 'Dispositivo no encontrado'], 404);
             }
 
+            // Escapar todos los valores antes de interpolarlos en HTML. El
+            // nombre, ubicación y otros campos del dispositivo los define un
+            // administrador vía el formulario de "Registrar Dispositivo" (ver
+            // crearDispositivo()) y se guardan tal cual en la base de datos,
+            // así que sin escape esto era un vector de XSS almacenado: un
+            // nombre/ubicación con <script> se ejecutaría cada vez que
+            // cualquier administrador abriera el modal de detalles.
+            $safe = array_map(function ($valor) {
+                return htmlspecialchars((string) ($valor ?? ''), ENT_QUOTES, 'UTF-8');
+            }, $dispositivo);
+
             // Generar HTML para mostrar en el modal
             $html = "
                 <div class='row'>
                     <div class='col-md-6'>
                         <h6>Información General</h6>
                         <table class='table table-sm'>
-                            <tr><td><strong>ID:</strong></td><td>{$dispositivo['id']}</td></tr>
-                            <tr><td><strong>Nombre:</strong></td><td>{$dispositivo['nombre']}</td></tr>
-                            <tr><td><strong>Ubicación:</strong></td><td>{$dispositivo['ubicacion']}</td></tr>
-                            <tr><td><strong>Estado:</strong></td><td>{$dispositivo['estado']}</td></tr>
-                            <tr><td><strong>IP:</strong></td><td>{$dispositivo['ip_address']}</td></tr>
+                            <tr><td><strong>ID:</strong></td><td>{$safe['id']}</td></tr>
+                            <tr><td><strong>Nombre:</strong></td><td>{$safe['nombre']}</td></tr>
+                            <tr><td><strong>Ubicación:</strong></td><td>{$safe['ubicacion']}</td></tr>
+                            <tr><td><strong>Estado:</strong></td><td>{$safe['estado']}</td></tr>
+                            <tr><td><strong>IP:</strong></td><td>{$safe['ip_address']}</td></tr>
                         </table>
                     </div>
                     <div class='col-md-6'>
                         <h6>Estadísticas</h6>
                         <table class='table table-sm'>
-                            <tr><td><strong>Total Registros:</strong></td><td>{$dispositivo['total_registros']}</td></tr>
-                            <tr><td><strong>Último Ping:</strong></td><td>{$dispositivo['ultimo_ping']}</td></tr>
-                            <tr><td><strong>Último Registro:</strong></td><td>{$dispositivo['ultimo_registro']}</td></tr>
-                            <tr><td><strong>Primer Registro:</strong></td><td>{$dispositivo['primer_registro']}</td></tr>
+                            <tr><td><strong>Total Registros:</strong></td><td>{$safe['total_registros']}</td></tr>
+                            <tr><td><strong>Último Ping:</strong></td><td>{$safe['ultimo_ping']}</td></tr>
+                            <tr><td><strong>Último Registro:</strong></td><td>{$safe['ultimo_registro']}</td></tr>
+                            <tr><td><strong>Primer Registro:</strong></td><td>{$safe['primer_registro']}</td></tr>
                         </table>
                     </div>
                 </div>
                 <div class='mt-3'>
                     <h6>Token de Autenticación</h6>
                     <div class='alert alert-warning'>
-                        <code>{$dispositivo['token_dispositivo']}</code>
+                        <code>{$safe['token_dispositivo']}</code>
                         <button class='btn btn-sm btn-outline-primary float-end' onclick='copiarToken()'>
                             <i class='fas fa-copy'></i> Copiar
                         </button>
