@@ -172,11 +172,13 @@ class EmpleadoController
         ", [$usuario_id])['total'];
 
         // Marcaciones puntuales
-        $stats['puntuales_mes'] = $stats['dias_trabajados'] - $stats['tardanzas_mes'];
+        $stats['puntuales_mes'] = max(0, $stats['dias_trabajados'] - $stats['tardanzas_mes']);
 
         // Porcentaje de puntualidad
-        $stats['porcentaje_puntualidad'] = $stats['dias_trabajados'] > 0 ?
-            round(($stats['puntuales_mes'] / $stats['dias_trabajados']) * 100, 2) : 100;
+        $stats['porcentaje_puntualidad'] = \App\Utils\AsistenciaCalculator::calcularPorcentajePuntualidad(
+            (int) $stats['dias_trabajados'],
+            (int) $stats['tardanzas_mes']
+        );
 
         return $stats;
     }

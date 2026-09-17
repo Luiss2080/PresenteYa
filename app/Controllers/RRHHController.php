@@ -293,8 +293,10 @@ class RRHHController
             AND es_tardanza = 1
         ", [$usuario_id])['total'];
 
-        $stats['puntualidad'] = $stats['dias_trabajados'] > 0 ?
-            round((($stats['dias_trabajados'] - $stats['tardanzas_mes']) / $stats['dias_trabajados']) * 100, 2) : 100;
+        $stats['puntualidad'] = \App\Utils\AsistenciaCalculator::calcularPorcentajePuntualidad(
+            (int) $stats['dias_trabajados'],
+            (int) $stats['tardanzas_mes']
+        );
 
         return $stats;
     }
