@@ -22,12 +22,12 @@
                 <div class="col-md-3">
                     <label class="form-label">Fecha Inicio *</label>
                     <input type="date" name="fecha_inicio" class="form-control"
-                        value="<?= $filtros['fecha_inicio'] ?>" required>
+                        value="<?= htmlspecialchars($filtros['fecha_inicio'], ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Fecha Fin *</label>
                     <input type="date" name="fecha_fin" class="form-control"
-                        value="<?= $filtros['fecha_fin'] ?>" required>
+                        value="<?= htmlspecialchars($filtros['fecha_fin'], ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Empleado</label>
@@ -219,11 +219,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/rrhh/exportar-reporte" method="POST" id="formExportar">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <div class="modal-body">
-                    <input type="hidden" name="fecha_inicio" value="<?= $filtros['fecha_inicio'] ?>">
-                    <input type="hidden" name="fecha_fin" value="<?= $filtros['fecha_fin'] ?>">
-                    <input type="hidden" name="empleado" value="<?= $filtros['empleado'] ?>">
-                    <input type="hidden" name="tipo_reporte" value="<?= $filtros['tipo_reporte'] ?>">
+                    <input type="hidden" name="fecha_inicio" value="<?= htmlspecialchars($filtros['fecha_inicio'], ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="fecha_fin" value="<?= htmlspecialchars($filtros['fecha_fin'], ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="empleado" value="<?= htmlspecialchars($filtros['empleado'], ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="tipo_reporte" value="<?= htmlspecialchars($filtros['tipo_reporte'], ENT_QUOTES, 'UTF-8') ?>">
                     <input type="hidden" name="formato" id="formatoExportar">
 
                     <div class="mb-3">

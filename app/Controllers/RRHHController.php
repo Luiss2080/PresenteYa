@@ -8,6 +8,7 @@
 namespace App\Controllers;
 
 use App\Models\Database;
+use App\Utils\Auth;
 use Exception;
 
 class RRHHController
@@ -124,6 +125,14 @@ class RRHHController
      */
     public function exportarReporte()
     {
+        $token = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+        if (!Auth::verificarTokenCSRF($token)) {
+            http_response_code(403);
+            $_SESSION['error'] = 'Token de seguridad inválido o expirado. Vuelve a intentarlo.';
+            header('Location: /ControlDeAsistencia/rrhh/reportes');
+            exit;
+        }
+
         $filtros = [
             'fecha_inicio' => $_POST['fecha_inicio'] ?? date('Y-m-01'),
             'fecha_fin' => $_POST['fecha_fin'] ?? date('Y-m-d'),
@@ -539,6 +548,12 @@ class RRHHController
      */
     private function renderViewWithLayout($viewPath, $data = [])
     {
+        // Todas las vistas de RRHH reciben un token CSRF listo para usar en
+        // sus formularios (ver exportarReporte()).
+        if (!isset($data['csrf_token'])) {
+            $data['csrf_token'] = Auth::generarTokenCSRF();
+        }
+
         // Extraer variables para que estén disponibles en las vistas
         extract($data);
 
