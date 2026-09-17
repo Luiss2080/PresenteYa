@@ -81,21 +81,29 @@ Buzzer -   →  GND
 
 ## Configuración del Código
 
-### 1. Credenciales WiFi
-En el archivo `lector_asistencia.ino`, modificar:
+### 1. Credenciales WiFi y token del dispositivo
+
+Las credenciales de WiFi y el token del dispositivo YA NO se escriben
+dentro de `lector_asistencia.ino` (antes estaban ahí en texto plano, lo
+que significa que subir el `.ino` a un repositorio público exponía la
+contraseña real de la red WiFi). Ahora viven en `config.h`, que está en
+`.gitignore` y nunca se sube al repositorio.
+
+1. Copia `esp32/config.h.example` a `esp32/config.h`.
+2. Edita `esp32/config.h` con tus valores reales:
 
 ```cpp
-const char* ssid = "TU_WIFI_SSID";
-const char* password = "TU_WIFI_PASSWORD";
+#define WIFI_SSID     "TU_WIFI_SSID"
+#define WIFI_PASSWORD "TU_WIFI_PASSWORD"
+#define SERVER_URL    "http://tu-servidor.com/ControlDeAsistencia/api"
+#define DEVICE_TOKEN  "el_token_que_generó_el_panel_al_crear_el_dispositivo"
 ```
 
-### 2. Configuración del Servidor
-```cpp
-const char* serverURL = "http://tu-servidor.com/api";
-const char* apiKey = "tu_token_de_dispositivo_aqui";
-```
+El `DEVICE_TOKEN` se obtiene del panel de administración al registrar el
+dispositivo (Admin → Dispositivos → Registrar Nuevo Dispositivo). Cada
+lector debe usar su propio token.
 
-### 3. Zona Horaria
+### 2. Zona Horaria
 Ajustar según tu ubicación:
 ```cpp
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -21600, 60000); // GMT-6 México
@@ -116,8 +124,9 @@ Para otras zonas:
 
 ### 2. Programación
 1. Conectar el ESP32 al PC vía USB
-2. Abrir `lector_asistencia.ino` en Arduino IDE
-3. Configurar credenciales WiFi y servidor
+2. Copiar `config.h.example` a `config.h` y completar tus credenciales
+   (ver sección "Configuración del Código" arriba)
+3. Abrir `lector_asistencia.ino` en Arduino IDE
 4. Seleccionar la placa y puerto correctos
 5. Compilar y subir el código
 
@@ -191,6 +200,27 @@ Puede recibir configuraciones del servidor para ajustar parámetros sin reprogra
 
 ### Monitoreo
 Envía pings periódicos al servidor con información de estado y diagnóstico.
+
+## Limitaciones conocidas
+
+### Clonado/replay de UID RFID
+
+Este lector sólo lee el UID de la tarjeta MFRC522, sin ningún desafío
+criptográfico contra la propia tarjeta. Eso significa que **una tarjeta
+clonada con el mismo UID es indistinguible de la original** para este
+sistema: no hay forma de detectar el clonado a nivel de lector con este
+hardware. Resolverlo de verdad requiere tarjetas con cifrado (p. ej.
+MIFARE DESFire) y lógica de autenticación adicional, que este proyecto
+no implementa.
+
+Lo único que existe hoy como mitigación parcial es del lado del
+servidor: `RegistroAsistencia::registrarMarcacion()` rechaza una nueva
+marcación del mismo usuario si la anterior fue hace menos de 5 minutos,
+lo que reduce el impacto de un replay inmediato (alguien reenviando la
+misma lectura una y otra vez) pero no evita que una tarjeta clonada
+marque asistencia como si fuera la original. Si tu caso de uso requiere
+protección real contra clonado, este sistema no es suficiente tal cual
+está y necesitarías tarjetas con cifrado + firmware que las soporte.
 
 ## Contacto y Soporte
 
