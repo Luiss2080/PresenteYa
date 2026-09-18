@@ -158,7 +158,7 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 ## 🔒 Seguridad
 
 - Contraseñas con bcrypt, PDO con sentencias preparadas y CSRF en los POST de administración.
-- Las acciones de desasignar/bloquear/activar/eliminar tarjetas y dispositivos son POST.
+- Las acciones de desasignar/bloquear/activar/eliminar tarjetas y dispositivos son POST (con CSRF); las antiguas rutas GET de borrado se eliminaron.
 - `config.h` (WiFi y token) queda fuera del repositorio.
 - Cambia las contraseñas del volcado de ejemplo y no actives `APP_DEBUG` en producción.
 
@@ -172,7 +172,6 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 - `composer install` en Composer reciente puede fallar porque `firebase/php-jwt ^6.8` tiene avisos de seguridad (con `--no-security-blocking` funciona), y `phpunit.xml.dist` usa el esquema de PHPUnit 10 aunque `composer.json` pide PHPUnit 9.5 (aparece un aviso de configuración).
 - Algunas pantallas cargan `css/main.css` con ruta relativa, por lo que en URLs anidadas (p. ej. `/admin/tarjetas`) pueden verse sin estilos.
 - En la prueba con el volcado, el dashboard de RRHH mostró "Total Empleados: 0" pese a haber empleados: dato por revisar.
-- Algunos borrados siguen siendo GET (`/admin/eliminar-usuario/{id}`, `/admin/eliminar-dispositivo/{token}`, `/admin/eliminar-tarjeta/{uid}`).
 
 ## 📄 Licencia
 

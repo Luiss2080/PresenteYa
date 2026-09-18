@@ -58,9 +58,6 @@ class Router
         $this->routes['POST']['/admin/dispositivos/desactivar/{id}'] = [AdminController::class, 'desactivarDispositivo'];
         $this->routes['POST']['/admin/dispositivos/activar/{id}'] = [AdminController::class, 'activarDispositivo'];
         $this->routes['POST']['/admin/dispositivos/eliminar/{id}'] = [AdminController::class, 'eliminarDispositivo'];
-        $this->routes['GET']['/admin/eliminar-usuario/{id}'] = [AdminController::class, 'eliminarUsuario'];
-        $this->routes['GET']['/admin/eliminar-dispositivo/{token}'] = [AdminController::class, 'eliminarDispositivo'];
-        $this->routes['GET']['/admin/eliminar-tarjeta/{uid}'] = [AdminController::class, 'eliminarTarjeta'];
 
         // Rutas del panel de RRHH
         $this->routes['GET']['/rrhh'] = [RRHHController::class, 'dashboard'];
