@@ -1,140 +1,183 @@
-# 🕐 PresenteYa
+<div align="center">
+  <img src="docs/assets/logo.svg" width="96" alt="Logo de PresenteYa" />
+  <h1>PresenteYa</h1>
+  <p><b>Control de asistencia por tarjeta RFID: lector ESP32 en la puerta y panel web PHP + MySQL por roles.</b></p>
 
-Sistema de control de asistencia por RFID para equipos pequeños: un
-lector ESP32 + MFRC522 en la puerta marca la entrada/salida de cada
-empleado con su tarjeta, y un panel web en PHP + MySQL calcula
-tardanzas, genera reportes y da a cada rol (administrador, RRHH,
-empleado) sólo la vista que le corresponde.
+  <img src="https://img.shields.io/badge/estado-MVP%20funcional-orange?style=for-the-badge" alt="Estado: MVP funcional" />
+  <img src="https://img.shields.io/badge/PHP-%E2%89%A5%208.0-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.0+" />
+  <img src="https://img.shields.io/badge/MySQL-MariaDB-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL / MariaDB" />
+  <img src="https://img.shields.io/badge/ESP32-MFRC522-E7352C?style=for-the-badge" alt="ESP32 + MFRC522" />
+  <img src="https://img.shields.io/badge/tests-16%20pasan-brightgreen?style=for-the-badge" alt="16 tests" />
+  <img src="https://img.shields.io/badge/licencia-MIT-blue?style=for-the-badge" alt="Licencia MIT" />
+  <br />
+  <a href="https://github.com/Luiss2080/PresenteYa/actions/workflows/ci.yml"><img src="https://github.com/Luiss2080/PresenteYa/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 
-## Características
+  <p>
+    <a href="#-inicio-rápido">Inicio rápido</a> ·
+    <a href="#-características">Características</a> ·
+    <a href="#-arquitectura">Arquitectura</a> ·
+    <a href="#-pruebas">Pruebas</a> ·
+    <a href="#-lo-que-todavía-no-existe">Limitaciones</a>
+  </p>
+</div>
 
-Verificado leyendo el código de `app/`, `api/` y `esp32/`:
+PresenteYa registra entradas y salidas de empleados con tarjetas RFID: un lector **ESP32 + MFRC522** envía el
+UID a una API en PHP, que calcula tardanzas según el horario de cada empleado, y un panel web muestra a
+administración, RRHH y empleados solo lo que les corresponde. Es un MVP hecho a mano (sin framework) que **no**
+es un producto listo para producción: revisa las [limitaciones](#-lo-que-todavía-no-existe) antes de usarlo.
 
-- 🏷️ **Marcación por RFID**: el ESP32 lee el UID de la tarjeta (MFRC522)
-  y lo envía al backend, que registra la entrada/salida y calcula si
-  fue con tardanza según el horario del empleado
-  (`RegistroAsistencia::registrarMarcacion`, `App\Utils\AsistenciaCalculator`).
-- 📡 **Firmware ESP32 con modo offline**: si no hay WiFi o el servidor no
-  responde, la marcación se guarda en memoria (`Preferences`) y se
-  reintenta automáticamente en el siguiente ping (`enviarAsistenciasOffline()`).
-- 👥 **Tres roles con su propio panel**: Administrador (usuarios,
-  dispositivos, tarjetas RFID, configuración), RRHH (dashboard del día,
-  alertas de tardanzas/ausencias, reportes) y Empleado (su propio
-  historial y estadísticas), cada uno con su propio controlador que
-  verifica el rol en sesión antes de mostrar nada.
-- 🔐 **Autenticación con sesiones PHP**: login con `password_hash`/
-  `password_verify` (bcrypt), protección CSRF en los formularios que
-  modifican datos, y limitación de intentos vía rate limiting básico.
-- 🔑 **Autenticación de dispositivos por token**: cada lector ESP32 tiene
-  su propio token (`dispositivos.token_dispositivo`), generado por el
-  panel de administración y enviado por el firmware en cada request.
-- 📊 **Reportes de asistencia**: resumen y detalle por empleado,
-  llegadas tardías, ausentes, horas trabajadas, filtrables por fecha y
-  empleado (`App\Models\Reporte`, panel de RRHH).
-- 🚨 **Alertas automáticas**: empleados con varias tardanzas seguidas,
-  ausencias sin justificar después de cierta hora, dispositivos
-  desconectados, y detección de marcaciones "sospechosas" (la misma
-  tarjeta usada en dos lectores distintos en pocos minutos).
+## 🎬 Vista rápida
 
-## Cómo usar
+Capturas reales con datos de ejemplo del volcado incluido (base temporal, contraseñas de demostración):
 
-1. El administrador registra empleados, dispositivos ESP32 y tarjetas
-   RFID desde el panel de administración, y asigna cada tarjeta a un
-   empleado.
-2. Cada lector ESP32, ya configurado con su token, queda pegado junto a
-   una puerta. El empleado acerca su tarjeta; el lector confirma con
-   LED/buzzer y envía la marcación al servidor.
-3. RRHH ve en tiempo real quién llegó, quién llegó tarde y quién falta,
-   y genera reportes por rango de fechas.
-4. Cada empleado entra a su propio panel para ver su historial y su
-   porcentaje de puntualidad.
+| Login | Panel de RRHH |
+|---|---|
+| <img src="docs/screenshots/login.png" alt="Pantalla de inicio de sesión de PresenteYa" width="420" /> | <img src="docs/screenshots/rrhh.png" alt="Dashboard de RRHH con tarjetas de presentes, tardanzas y ausentes" width="420" /> |
 
-## Instalación y uso local
+<img src="docs/screenshots/admin.png" alt="Dashboard del administrador con gestión de usuarios y dispositivos" width="860" />
 
-### Backend (PHP + MySQL)
+Flujo principal:
 
-```bash
-git clone https://github.com/Luiss2080/PresenteYa.git
-cd PresenteYa
-composer install
-
-cp .env.example .env
-# Editar .env: credenciales de MySQL y JWT_SECRET/SESSION_SECRET propios
-
-# Crear la base de datos e importar el volcado de ejemplo
-mysql -u root -e "CREATE DATABASE control_asistencia CHARACTER SET utf8mb4;"
-mysql -u root control_asistencia < database/backup_completo.sql
-
-php -S localhost:8000
+```text
+Tarjeta RFID -> lector ESP32 (LED/buzzer) -> POST /api/asistencia con token del dispositivo
+   -> RegistroAsistencia calcula entrada/salida y tardanza -> MySQL
+   -> RRHH ve presentes/tardanzas/ausentes; el empleado ve su historial
 ```
 
-Abre `http://localhost:8000/`. El volcado de ejemplo incluye tres
-usuarios de prueba (admin, RRHH y un empleado); sus credenciales sólo
-se muestran en la propia pantalla de login cuando `APP_DEBUG=true` en
-`.env` — en producción, cámbialas o crea usuarios nuevos y no actives
-ese modo.
+## ✨ Características
 
-### Firmware ESP32
+| Característica | Detalle |
+|---|---|
+| 🏷️ Marcación RFID | El ESP32 lee el UID y lo envía a la API; el backend decide entrada o salida y si hubo tardanza (`RegistroAsistencia`, `AsistenciaCalculator`). |
+| 📡 Modo offline en firmware | Si no hay WiFi o servidor, las marcaciones se guardan en memoria (`Preferences`) y se reenvían (`enviarAsistenciasOffline()`). |
+| 👥 Tres roles | Administrador (usuarios, dispositivos, tarjetas), RRHH (dashboard del día, alertas, reportes) y Empleado (su historial). |
+| 🔑 Token por dispositivo | Cada lector envía su token en cada petición; la API lo valida contra `dispositivos.token_dispositivo` (excepto `ping`). |
+| 🔐 Login | Sesión PHP, `password_hash`/`password_verify`, `session_regenerate_id` y CSRF en formularios que modifican datos. |
+| 🚨 Alertas | Tardanzas consecutivas (3 días), ausencias, dispositivos desconectados y marcaciones sospechosas (misma tarjeta en dos lectores). |
+| 📊 Reportes | Por rango de fechas y empleado; exportación en HTML servido como Excel/PDF (no son archivos reales). |
+| 🛡️ Anti-rebote | El servidor rechaza una segunda marcación del mismo usuario en menos de 5 minutos. |
+
+## 🏗️ Arquitectura
+
+```mermaid
+flowchart LR
+    T["Tarjeta RFID"] --> E["ESP32 + MFRC522 (lector_asistencia.ino)"]
+    E -->|"POST /api/asistencia + token"| A["api/index.php"]
+    A --> R["RegistroAsistencia + AsistenciaCalculator"]
+    R --> DB[("MySQL: usuarios, tarjetas_rfid, dispositivos, asistencias")]
+    B["Navegador"] --> RT["Router (src/routes.php)"]
+    RT --> AD["AdminController"]
+    RT --> RH["RRHHController"]
+    RT --> EM["EmpleadoController"]
+    AD --> DB
+    RH --> DB
+    EM --> DB
+```
+
+<details>
+<summary>📁 Estructura de carpetas</summary>
+
+```
+api/index.php        API para el ESP32 (ping, asistencia, configuracion, sincronizar, estado)
+app/Controllers/     Auth, Admin, RRHH, Empleado
+app/Models/          Database, Usuario, Dispositivo, TarjetaRFID, RegistroAsistencia, Reporte
+app/Utils/           Auth, AsistenciaCalculator, Response, Validator
+app/Views/           admin, rrhh, empleado, auth, layouts
+config/              app, database, bootstrap (lee .env)
+database/            backup_completo.sql (esquema + datos de ejemplo)
+esp32/               lector_asistencia.ino, config.h.example, README y diagrama de conexiones
+src/routes.php       Router propio
+tests/               PHPUnit (unit) y SystemTest.php (script manual)
+```
+
+</details>
+
+## 🚀 Inicio rápido
+
+| Requisito | Versión |
+|---|---|
+| PHP | 8.0+ con `pdo_mysql` |
+| MySQL / MariaDB | 5.7+ |
+| Servidor web | Apache con `mod_rewrite` (Laragon/XAMPP) bajo `/ControlDeAsistencia/` |
+| ESP32 + MFRC522 | Opcional; para el lector (ver `esp32/README.md`) |
+
+```bash
+git clone https://github.com/Luiss2080/PresenteYa.git ControlDeAsistencia   # el nombre de carpeta importa
+cd ControlDeAsistencia
+composer install
+cp .env.example .env            # edita DB_NAME, DB_USER, DB_PASS
+mysql -u root -e "CREATE DATABASE control_asistencia CHARACTER SET utf8mb4"
+mysql -u root control_asistencia < database/backup_completo.sql
+```
+
+Coloca la carpeta como `ControlDeAsistencia` dentro del directorio web (p. ej. `C:\laragon\www\ControlDeAsistencia`) y abre
+`http://localhost/ControlDeAsistencia/`. El código tiene esa ruta escrita en redirecciones y en `.htaccess`, por lo
+que **servirlo desde la raíz (`php -S localhost:8000`) rompe las redirecciones**. No verifiqué esta instalación en
+Apache real: para las capturas emulé el mismo prefijo con un enrutador temporal sobre `php -S`.
+
+El volcado trae usuarios de ejemplo (`admin@empresa.com`, `rrhh@empresa.com`, `juan@empresa.com`, entre otros); sus
+contraseñas solo se muestran en la pantalla de login con `APP_DEBUG=true`. Cámbialas o crea usuarios nuevos.
+
+<details>
+<summary>📟 Firmware ESP32</summary>
 
 ```bash
 cd esp32
 cp config.h.example config.h
-# Editar config.h: WIFI_SSID, WIFI_PASSWORD, SERVER_URL y DEVICE_TOKEN
-# (el token se genera en el panel: Admin -> Dispositivos -> Registrar Nuevo Dispositivo)
+# edita WIFI_SSID, WIFI_PASSWORD, SERVER_URL (p. ej. http://IP/ControlDeAsistencia/api) y DEVICE_TOKEN
 ```
 
-Abre `lector_asistencia.ino` en el Arduino IDE (placa "ESP32 Dev
-Module"), instala las librerías listadas en `esp32/README.md`
-(ArduinoJson, MFRC522, NTPClient) y compílalo/súbelo. `config.h` está
-en `.gitignore`: nunca se sube al repositorio, a diferencia del `.ino`
-original de este proyecto, que sí tenía el WiFi y el token
-hardcodeados.
+El token se crea en el panel: Admin -> Dispositivos -> Registrar. Abre `lector_asistencia.ino` en Arduino IDE
+(placa "ESP32 Dev Module") e instala ArduinoJson, MFRC522 y NTPClient. `config.h` está en `.gitignore`.
 
-## Tecnologías
+</details>
 
-- **Firmware**: ESP32 + MFRC522 (Arduino/C++), `ArduinoJson`, `NTPClient`,
-  `Preferences` para almacenamiento offline.
-- **Backend**: PHP 8+ sin framework (MVC propio: `App\Controllers`,
-  `App\Models`, `App\Views`), PDO con sentencias preparadas para MySQL.
-- **Autenticación**: sesiones PHP nativas + `password_hash`/
-  `password_verify`. El `composer.json` lista `firebase/php-jwt` como
-  dependencia, pero **no se usa en ningún lugar del código actual**: no
-  hay JWT real en este sistema hoy, todo el login es por sesión. Lo
-  mismo pasa con `mpdf`, `phpoffice/phpspreadsheet` y `phpmailer/phpmailer`:
-  están declarados pero los reportes se exportan hoy como HTML plano
-  con cabecera `Content-Type` de Excel/PDF (`RRHHController::exportarExcel/exportarPDF`),
-  no como archivos `.xlsx`/`.pdf` reales, y no hay envío de correo
-  implementado en ningún controlador.
-- **Base de datos**: MySQL/MariaDB.
+<details>
+<summary>⚙️ Variables de entorno (.env.example)</summary>
 
-## Tests
+| Variable | Uso |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | Conexión MySQL |
+| `APP_DEBUG` | `true` muestra errores y las credenciales de demostración en el login |
+| `APP_TIMEZONE` | Por defecto `America/Mexico_City` |
+| `JWT_SECRET`, `SESSION_SECRET`, `MAIL_*`, `REDIS_*` | Declaradas en el ejemplo, pero el código actual no las usa |
+
+</details>
+
+## 🧪 Pruebas
 
 ```bash
 composer install
-composer test
-# o directamente:
-vendor/bin/phpunit
+vendor/bin/phpunit      # 16 tests, 17 aserciones (sin base de datos)
 ```
 
-La suite actual (`tests/Unit/AsistenciaCalculatorTest.php`) cubre la
-lógica de asistencia extraída a `App\Utils\AsistenciaCalculator`
-(siguiente tipo de marcación, horario laboral con tolerancia, horas
-trabajadas, porcentaje de puntualidad) sin necesitar una base de datos.
-`tests/SystemTest.php` es un script manual de humo contra una base de
-datos real (no PHPUnit); sólo se ejecuta si `APP_DEBUG=true`.
+Verificado: `OK (16 tests, 17 assertions)`. Cubren la lógica de `AsistenciaCalculator` (siguiente tipo de
+marcación, horario con tolerancia, horas trabajadas, puntualidad). `tests/SystemTest.php` es un script manual contra una
+base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit con PHP 8.2.
 
-## Limitaciones conocidas
+## 🔒 Seguridad
 
-- **Clonado/replay de tarjetas RFID**: el sistema sólo valida el UID de
-  la tarjeta; no hay reto criptográfico contra la tarjeta ni forma de
-  distinguir una tarjeta clonada de la original con este hardware. La
-  única mitigación es que el servidor rechaza una nueva marcación del
-  mismo usuario si la anterior fue hace menos de 5 minutos, lo que
-  reduce el replay inmediato pero no evita el clonado. Ver
-  `esp32/README.md` para el detalle.
-- Los reportes "Excel"/"PDF" son HTML servido con el `Content-Type`
-  correspondiente, no archivos binarios reales.
+- Contraseñas con bcrypt, PDO con sentencias preparadas y CSRF en los POST de administración.
+- Las acciones de desasignar/bloquear/activar/eliminar tarjetas y dispositivos son POST.
+- `config.h` (WiFi y token) queda fuera del repositorio.
+- Cambia las contraseñas del volcado de ejemplo y no actives `APP_DEBUG` en producción.
 
-## Licencia
+## 🚧 Lo que todavía no existe
 
-MIT — ver [`LICENSE`](LICENSE).
+- **Ruta base fija**: `/ControlDeAsistencia/` está escrita en controladores, `.htaccess` y la API; no hay despliegue en la raíz.
+- **Sin límite de intentos de login**: el README anterior mencionaba rate limiting, pero no hay código que lo implemente.
+- **Clonado de tarjetas**: solo se valida el UID; una tarjeta clonada es indistinguible de la original.
+- **Reportes "Excel/PDF"**: son HTML con cabecera `Content-Type`; no se generan `.xlsx` ni `.pdf`.
+- **Dependencias sin uso**: `firebase/php-jwt`, `mpdf`, `phpoffice/phpspreadsheet` y `phpmailer` están declaradas y ningún código las usa; no hay JWT ni correo.
+- `composer install` en Composer reciente puede fallar porque `firebase/php-jwt ^6.8` tiene avisos de seguridad (con `--no-security-blocking` funciona), y `phpunit.xml.dist` usa el esquema de PHPUnit 10 aunque `composer.json` pide PHPUnit 9.5 (aparece un aviso de configuración).
+- Algunas pantallas cargan `css/main.css` con ruta relativa, por lo que en URLs anidadas (p. ej. `/admin/tarjetas`) pueden verse sin estilos.
+- En la prueba con el volcado, el dashboard de RRHH mostró "Total Empleados: 0" pese a haber empleados: dato por revisar.
+- Algunos borrados siguen siendo GET (`/admin/eliminar-usuario/{id}`, `/admin/eliminar-dispositivo/{token}`, `/admin/eliminar-tarjeta/{uid}`).
+
+## 📄 Licencia
+
+MIT — ver [LICENSE](LICENSE).
+
+<div align="center">
+  <sub>Hecho por Luiss2080 · ESP32, PHP y tarjetas RFID</sub>
+</div>
