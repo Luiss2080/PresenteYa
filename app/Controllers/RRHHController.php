@@ -157,7 +157,7 @@ class RRHHController
         $stats = [];
 
         // Total de empleados activos
-        $stats['empleados_total'] = $this->db->fetch("SELECT COUNT(*) as total FROM usuarios WHERE activo = 1 AND rol = 'empleado'")['total'];
+        $stats['total_empleados'] = $this->db->fetch("SELECT COUNT(*) as total FROM usuarios WHERE activo = 1 AND rol = 'empleado'")['total'];
 
         // Empleados presentes hoy (que han marcado entrada)
         $stats['presentes_hoy'] = $this->db->fetch("
@@ -174,7 +174,7 @@ class RRHHController
         ")['total'];
 
         // Ausentes (empleados que no han marcado entrada hoy)
-        $stats['ausentes_hoy'] = $stats['empleados_total'] - $stats['presentes_hoy'];
+        $stats['ausentes_hoy'] = $stats['total_empleados'] - $stats['presentes_hoy'];
 
         return $stats;
     }

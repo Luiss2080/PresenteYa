@@ -170,7 +170,6 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 - **Reportes "Excel/PDF"**: son HTML con cabecera `Content-Type`; no se generan `.xlsx` ni `.pdf`.
 - **Dependencias sin uso**: `firebase/php-jwt`, `mpdf`, `phpoffice/phpspreadsheet` y `phpmailer` están declaradas y ningún código las usa; no hay JWT ni correo.
 - Algunas pantallas cargan `css/main.css` con ruta relativa, por lo que en URLs anidadas (p. ej. `/admin/tarjetas`) pueden verse sin estilos.
-- En la prueba con el volcado, el dashboard de RRHH mostró "Total Empleados: 0" pese a haber empleados: dato por revisar.
 - Algunos borrados siguen siendo GET (`/admin/eliminar-usuario/{id}`, `/admin/eliminar-dispositivo/{token}`, `/admin/eliminar-tarjeta/{uid}`).
 
 ## 📄 Licencia
