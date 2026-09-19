@@ -169,9 +169,7 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 - **Clonado de tarjetas**: solo se valida el UID; una tarjeta clonada es indistinguible de la original.
 - **Reportes "Excel/PDF"**: son HTML con cabecera `Content-Type`; no se generan `.xlsx` ni `.pdf`.
 - **Dependencias sin uso**: `firebase/php-jwt`, `mpdf`, `phpoffice/phpspreadsheet` y `phpmailer` están declaradas y ningún código las usa; no hay JWT ni correo.
-- `composer install` en Composer reciente puede fallar porque `firebase/php-jwt ^6.8` tiene avisos de seguridad (con `--no-security-blocking` funciona), y `phpunit.xml.dist` usa el esquema de PHPUnit 10 aunque `composer.json` pide PHPUnit 9.5 (aparece un aviso de configuración).
 - Algunas pantallas cargan `css/main.css` con ruta relativa, por lo que en URLs anidadas (p. ej. `/admin/tarjetas`) pueden verse sin estilos.
-- En la prueba con el volcado, el dashboard de RRHH mostró "Total Empleados: 0" pese a haber empleados: dato por revisar.
 
 ## 📄 Licencia
 
