@@ -158,7 +158,7 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 ## 🔒 Seguridad
 
 - Contraseñas con bcrypt, PDO con sentencias preparadas y CSRF en los POST de administración.
-- Las acciones de desasignar/bloquear/activar/eliminar tarjetas y dispositivos son POST.
+- Las acciones de desasignar/bloquear/activar/eliminar tarjetas y dispositivos son POST (con CSRF); las antiguas rutas GET de borrado se eliminaron.
 - `config.h` (WiFi y token) queda fuera del repositorio.
 - Cambia las contraseñas del volcado de ejemplo y no actives `APP_DEBUG` en producción.
 
@@ -170,7 +170,6 @@ base real, no forma parte de PHPUnit. La CI ejecuta lint de sintaxis y PHPUnit c
 - **Reportes "Excel/PDF"**: son HTML con cabecera `Content-Type`; no se generan `.xlsx` ni `.pdf`.
 - **Dependencias sin uso**: `firebase/php-jwt`, `mpdf`, `phpoffice/phpspreadsheet` y `phpmailer` están declaradas y ningún código las usa; no hay JWT ni correo.
 - Algunas pantallas cargan `css/main.css` con ruta relativa, por lo que en URLs anidadas (p. ej. `/admin/tarjetas`) pueden verse sin estilos.
-- Algunos borrados siguen siendo GET (`/admin/eliminar-usuario/{id}`, `/admin/eliminar-dispositivo/{token}`, `/admin/eliminar-tarjeta/{uid}`).
 
 ## 📄 Licencia
 
